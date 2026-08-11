@@ -46,6 +46,11 @@
       label { display: block; margin: 11px 0 4px; font-size: 11px; color: #8a92ad; }
       label span { float: right; color: #cfd4e4; font-variant-numeric: tabular-nums; }
       input[type="range"] { width: 100%; accent-color: #a05cff; }
+      select {
+        width: 100%; font: inherit; font-size: 11.5px; padding: 5px 6px;
+        border-radius: 7px; background: rgba(255,255,255,0.06); color: #cfd4e4;
+        border: 1px solid rgba(255,255,255,0.1);
+      }
 
       #file {
         display: block; width: 100%; margin-top: 14px; padding: 9px;
@@ -75,8 +80,17 @@
         <button data-mode="helix">Helix</button>
       </div>
 
+      <label>Detail <span id="v-detail">85 ms</span></label>
+      <select id="s-detail">
+        <option value="coarse">Coarse — best pitch</option>
+        <option value="balanced" selected>Balanced</option>
+        <option value="fine">Fine</option>
+        <option value="ultra">Ultra — sharpest transients</option>
+      </select>
+
+      <!-- Logarithmic: linear steps are useless when the range spans 160x. -->
       <label>Window <span id="v-window">8.0 s</span></label>
-      <input type="range" id="s-window" min="1" max="20" step="0.5" value="8" />
+      <input type="range" id="s-window" min="0" max="1000" step="1" value="825" />
 
       <label>Fade <span id="v-fade">1.2 s</span></label>
       <input type="range" id="s-fade" min="0.1" max="4" step="0.1" value="1.2" />

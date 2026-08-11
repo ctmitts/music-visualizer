@@ -158,10 +158,32 @@ real A/V sync trap there worth reading before you plug anything in.
 | **Gain / Saturation** | exposure and colour intensity. |
 | **A/V sync** | delays the picture to match output latency. See the TV doc. |
 
-In code, `fftSize` and `hopSize` are the ones that change the character:
-`fftSize: 8192` sharpens bass pitch discrimination at the cost of time
-smearing; `hopSize: 512` doubles the frame rate for a much more fluid picture
-at roughly double the CPU.
+### Detail — the uncertainty principle as a control
+
+The **Detail** setting picks FFT size and hop together. It is the one control
+where no setting is "best", because it is trading one physical resolution
+against another:
+
+| preset | FFT | hop | frames/s | analysis window | history | columns in a 125 ms view |
+|---|---|---|---|---|---|---|
+| coarse | 8192 | 1024 | 47 | 171 ms | 87 s | 5.9 |
+| balanced | 4096 | 512 | 94 | 85 ms | 44 s | 11.7 |
+| fine | 2048 | 256 | 188 | 43 ms | 22 s | 23.4 |
+| ultra | 1024 | 128 | 375 | 21 ms | 11 s | 46.9 |
+
+**The analysis window is the real floor on time resolution, not the hop.** A
+shorter hop adds columns, but consecutive columns overlap by 87.5%, so they are
+not independent. At `coarse`, a 125 ms display window is *shorter than a single
+analysis window* — you get 6 columns of heavily-correlated mush no matter how
+you set anything else. To actually see inside a drum hit you need a shorter
+FFT, which costs you the ability to tell a bass note from its neighbour.
+
+Measured CPU is **3–4% of one core at every preset** — halving the FFT halves
+per-frame cost while doubling the frame rate, so the two cancel. `ultra` is
+effectively free; the reason not to use it everywhere is spectral resolution,
+not speed.
+
+The **Window** slider is logarithmic and spans 0.125 s to 20 s.
 
 ---
 

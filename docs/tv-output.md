@@ -12,12 +12,34 @@ pick the TV as the output device.
 | route | how it appears | latency |
 |---|---|---|
 | **HDMI** (Mac → TV) | a normal CoreAudio output device | ~20–50 ms |
-| **AirPlay** (Mac → Apple TV) | a normal CoreAudio output device | **~1500–2000 ms** |
+| **AirPlay** (Mac → Apple TV) | **not an enumerable device** — see below | **~1500–2000 ms** |
 | **Optical / AV receiver** | a normal output device | ~50–150 ms, plus whatever DSP the receiver adds |
 
 A TV over HDMI usually reports 48 kHz. If it negotiates something else, the
 engine re-decodes and the visualizer must be rebuilt — see the sample-rate note
 in [mixer-integration.md](mixer-integration.md).
+
+### Why AirPlay needs special handling
+
+**An AirPlay destination is not a CoreAudio device an app can open.** macOS
+routes AirPlay at the system layer, so `cpal`'s `output_devices()` never lists
+an Apple TV — it will not appear in a device picker, and selecting it by name
+is impossible.
+
+The only route is to follow the **system default output**, which the user
+changes in Control Center. But that alone is not enough either: a `cpal` stream
+is bound to whichever device it resolved at build time, so an already-running
+stream keeps playing to the laptop speakers even after the default changes.
+Choosing AirPlay appears to do nothing.
+
+Mix Table handles this with a watcher thread (`spawn_default_device_watcher`)
+that polls the default device name and rebuilds the stream when it changes,
+but only while the picker is on "System default" — an explicitly chosen device
+is never overridden. cpal does not surface CoreAudio's default-changed
+notification, hence the poll.
+
+So the working sequence is: set **Output → System default**, then pick the
+Apple TV in Control Center. The stream follows within ~1.5 s.
 
 ## Video
 
