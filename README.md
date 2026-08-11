@@ -167,8 +167,15 @@ at roughly double the CPU.
 
 ## Status
 
-Measured at **120 fps** at 1504×1828 in the heaviest mode (flow, 8-step LIC),
-so there is ample headroom for 4K. The production bundle is 24 kB.
+GPU cost per frame at 1504×1828, measured with a forced sync:
+
+| waterfall | flow | mandala | helix |
+|---|---|---|---|
+| 0.17 ms | 0.10 ms | 0.04 ms | 0.03 ms |
+
+Waterfall is the most expensive — 64 ridgeline rows with hidden-surface
+removal — and still uses ~1% of a 60 fps frame budget, so 4K has ample
+headroom. The production bundle is 26 kB.
 
 Verified against a synthetic signal with a known picture — an A major triad, a
 sawtooth sweep, and low-level noise. The sawtooth's harmonics are evenly spaced

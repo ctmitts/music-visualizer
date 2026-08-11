@@ -106,8 +106,8 @@ hit.
 
 ## Performance
 
-Measured at 120 fps at 1504×1828 in the heaviest mode, so 4K at 60 fps has
-comfortable headroom. If a weaker GPU struggles, in order of effect: drop
-`STEPS` in the flow shader from 8, halve the canvas backing resolution (`dpr`
-is already capped at 2 in `renderer.ts`), or raise `hopSize` to 2048 to halve
-the analysis rate.
+The heaviest mode costs 0.17 ms/frame at 1504×1828, about 1% of a 60 fps
+budget, so 4K has comfortable headroom. If a weaker GPU struggles, in order of
+effect: drop `ROWS` in the waterfall shader from 64, drop `STEPS` in the flow
+shader from 8, halve the canvas backing resolution (`dpr` is already capped at
+2 in `renderer.ts`), or raise `hopSize` to 2048 to halve the analysis rate.
