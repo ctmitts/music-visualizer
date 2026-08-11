@@ -1,0 +1,25 @@
+{
+  "name": "spectral-visualizer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Phase-aware STFT music visualizer — four lenses on one time-frequency field",
+  "main": "src/visualizer.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "@types/react": "^19.1.8"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  }
+}

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spectral Visualizer</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: #05060a; overflow: hidden; }
+      body {
+        font: 13px/1.4 ui-sans-serif, -apple-system, "SF Pro Text", system-ui, sans-serif;
+        color: #cfd4e4;
+      }
+      #stage { position: fixed; inset: 0; }
+      canvas { width: 100%; height: 100%; display: block; }
+
+      #panel {
+        position: fixed; left: 16px; top: 16px; z-index: 10;
+        width: 268px; padding: 14px 16px 16px;
+        background: rgba(10, 12, 20, 0.72);
+        backdrop-filter: blur(18px) saturate(1.4);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        border-radius: 14px;
+        transition: opacity 0.35s ease;
+      }
+      #panel.dim { opacity: 0.12; }
+      #panel:hover { opacity: 1; }
+
+      h1 { margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+      .sub { margin: 0 0 14px; font-size: 11px; color: #6f7793; }
+
+      .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+      button {
+        font: inherit; font-size: 11.5px; padding: 7px 6px; cursor: pointer;
+        background: rgba(255,255,255,0.05); color: #b9c0d6;
+        border: 1px solid rgba(255,255,255,0.09); border-radius: 8px;
+        transition: background 0.18s, color 0.18s, border-color 0.18s;
+      }
+      button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+      button.active {
+        background: linear-gradient(135deg, #7b4dff, #d33ba8);
+        border-color: transparent; color: #fff;
+      }
+
+      label { display: block; margin: 11px 0 4px; font-size: 11px; color: #8a92ad; }
+      label span { float: right; color: #cfd4e4; font-variant-numeric: tabular-nums; }
+      input[type="range"] { width: 100%; accent-color: #a05cff; }
+
+      #file {
+        display: block; width: 100%; margin-top: 14px; padding: 9px;
+        text-align: center; border: 1px dashed rgba(255,255,255,0.18);
+        border-radius: 9px; cursor: pointer; font-size: 11.5px; color: #8a92ad;
+      }
+      #file:hover { border-color: #a05cff; color: #cfd4e4; }
+      input[type="file"] { display: none; }
+      #status { margin-top: 9px; font-size: 10.5px; color: #6f7793; min-height: 14px; }
+      #hint {
+        position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+        font-size: 11px; color: #4d5470; z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"><canvas id="canvas"></canvas></div>
+
+    <div id="panel">
+      <h1>Spectral Visualizer</h1>
+      <p class="sub">Gabor STFT · phase-vocoder hue</p>
+
+      <div class="modes">
+        <button data-mode="waterfall">Waterfall</button>
+        <button data-mode="mandala" class="active">Mandala</button>
+        <button data-mode="flow">Flow</button>
+        <button data-mode="helix">Helix</button>
+      </div>
+
+      <label>Window <span id="v-window">8.0 s</span></label>
+      <input type="range" id="s-window" min="1" max="20" step="0.5" value="8" />
+
+      <label>Fade <span id="v-fade">1.2 s</span></label>
+      <input type="range" id="s-fade" min="0.1" max="4" step="0.1" value="1.2" />
+
+      <label>Symmetry <span id="v-sym">6</span></label>
+      <input type="range" id="s-sym" min="1" max="16" step="1" value="6" />
+
+      <label>Hue drift <span id="v-hue">1.5 rpm</span></label>
+      <input type="range" id="s-hue" min="0" max="12" step="0.5" value="1.5" />
+
+      <label>Gain <span id="v-gain">1.00</span></label>
+      <input type="range" id="s-gain" min="0.3" max="2.5" step="0.05" value="1" />
+
+      <label>Saturation <span id="v-sat">1.00</span></label>
+      <input type="range" id="s-sat" min="0" max="2" step="0.05" value="1" />
+
+      <label title="Delay the picture to match output latency. HDMI ~30 ms, AirPlay ~1800 ms."
+        >A/V sync <span id="v-sync">0 ms</span></label
+      >
+      <input type="range" id="s-sync" min="0" max="2500" step="10" value="0" />
+
+      <label id="file" for="audiofile">Drop audio, or click to choose</label>
+      <input type="file" id="audiofile" accept="audio/*" />
+      <button id="mic" style="width:100%; margin-top:6px;">Use microphone</button>
+      <div id="status"></div>
+    </div>
+
+    <div id="hint">1–4 switch modes · H hides panel · F fullscreen · Space pauses</div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
