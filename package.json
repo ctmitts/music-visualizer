@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Phase-aware STFT music visualizer — four lenses on one time-frequency field",
+  "description": "Phase-aware STFT music visualizer \u2014 four lenses on one time-frequency field",
   "main": "src/visualizer.ts",
   "scripts": {
     "dev": "vite",
@@ -14,12 +14,26 @@
   "devDependencies": {
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
-    "@types/react": "^19.1.8"
+    "@types/react": "^19.1.8",
+    "@tauri-apps/api": "^2"
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "@tauri-apps/api": "^2"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "@tauri-apps/api": {
+      "optional": true
+    }
+  },
+  "exports": {
+    ".": "./src/visualizer.ts",
+    "./react": "./src/react/Visualizer.tsx",
+    "./sources/tauri": "./src/sources/tauri.ts",
+    "./sources/webaudio": "./src/sources/webaudio.ts",
+    "./render": "./src/render/renderer.ts"
   }
 }

@@ -16,13 +16,13 @@ import type { AudioSource } from "./types";
  * the UI thread at all. See docs/mixer-integration.md.
  *
  * The import of `@tauri-apps/api/core` is deliberately **static**. An earlier
- * version hid it behind a dynamic import with a non-literal specifier, so that
- * this file would still type-check in the standalone browser build where the
- * package is not installed. That works for tsc and breaks at runtime: a bundler
- * cannot statically analyse a computed specifier, so Vite emits the bare string
- * untouched and the browser fails with "does not resolve to a valid URL". In
- * the standalone repo the package is supplied as a types-only shim instead
- * (`src/tauri-shim.d.ts`), and this module is never imported there anyway.
+ * version hid it behind a dynamic import with a non-literal specifier so tsc
+ * would pass without the package installed. That works for tsc and breaks at
+ * runtime: a bundler cannot statically analyse a computed specifier, so Vite
+ * emits the bare string untouched and the browser fails with "does not resolve
+ * to a valid URL". The package is now an optional peer dependency (and a dev
+ * dependency for types); the standalone browser build never imports this
+ * module, so it never lands in that bundle.
  */
 
 export class TauriSource implements AudioSource {

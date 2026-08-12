@@ -128,7 +128,25 @@ fn stop_visualizer(engine: EngineState) {
 
 Register all three in `invoke_handler!` alongside `start_recording`.
 
-### 3. React side
+### 3. Link the package — do not copy it
+
+Mix Table consumes this repo as an npm-linked directory dependency:
+
+```bash
+npm install ../repos/music-visualizer
+```
+
+That symlinks `node_modules/spectral-visualizer` at the sibling checkout, so
+edits here hot-reload in the mixer's dev server with no sync step. (An earlier
+setup copied `src/` into the mixer; the copy went stale within a day and is
+exactly why this section exists.) Two host-side requirements:
+
+- Vite must be allowed to serve source through the symlink:
+  `server.fs.allow: [".", "../repos/music-visualizer"]`.
+- `@tauri-apps/api` is an optional peer dependency of this package; the host
+  supplies the real one.
+
+### 4. React side
 
 ```tsx
 import { useEffect, useState } from "react";
