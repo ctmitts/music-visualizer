@@ -117,9 +117,10 @@ function slider(id: string, out: string, apply: (v: number) => void, fmt: (v: nu
   update();
 }
 
-// The window spans 0.125 s to 20 s — a 160x range, so the slider is
+// The window spans 0.5 s to 20 s — a 40x range, so the slider is
 // logarithmic. Linear steps would make everything below 2 s unreachable.
-const WIN_MIN = 0.125;
+// (0.125 s was tried and is too twitchy to be interesting.)
+const WIN_MIN = 0.5;
 const WIN_MAX = 20;
 const winFromSlider = (t: number) => WIN_MIN * Math.pow(WIN_MAX / WIN_MIN, t / 1000);
 
