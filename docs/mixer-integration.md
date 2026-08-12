@@ -150,7 +150,7 @@ exactly why this section exists.) Two host-side requirements:
 
 ```tsx
 import { useEffect, useState } from "react";
-import { VisualizerView } from "spectral-visualizer/react/Visualizer";
+import { VisualizerView } from "spectral-visualizer/react";
 import { TauriSource } from "spectral-visualizer/sources/tauri";
 
 export function MixVisualizer() {
