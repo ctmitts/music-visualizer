@@ -120,7 +120,13 @@ vec3 spectralColor(vec4 s) {
   float L = mag * 0.95;
   // Chroma has to fall off as lightness → 1, or bright peaks clip to a flat
   // neon slab and all the detail in the loudest partials is lost.
-  float C = 0.16 * uSaturation * coh * (1.0 - 0.55 * mag);
+  // Chroma must not collapse as magnitude rises. The old 0.16/(1-0.55*mag)
+  // curve gave loud tonal material a chroma of ~0.07 — below the ~0.06 where
+  // Oklab reads as grey — so the most present parts of the mix were the least
+  // colourful, which is what made everything look dusty. Higher ceiling, much
+  // gentler falloff; the falloff is kept only to stay inside sRGB gamut near
+  // white.
+  float C = 0.22 * uSaturation * coh * (1.0 - 0.35 * mag);
 
   vec3 lab = vec3(L, C * cos(hue), C * sin(hue));
   vec3 rgb = oklabToLinearSrgb(lab);
@@ -142,8 +148,15 @@ vec3 spectralColor(vec4 s) {
 vec3 modeWaterfall(vec2 uv) {
   const int ROWS = 64;
 
+  // Never draw more ridges than there are frames on screen. Below about a two
+  // second window there are fewer frames than rows (23 frames at 0.5 s), so a
+  // fixed 64 rows draws each frame two or three times over — which is exactly
+  // the blocky stair-stepping that shows up at short windows.
+  int rows = int(clamp(uWindowFrac * float(uHistoryLen), 8.0, float(ROWS)));
+
   for (int i = 0; i < ROWS; i++) {
-    float t = float(i) / float(ROWS - 1);   // 0 = nearest/newest, 1 = horizon
+    if (i >= rows) break;
+    float t = float(i) / float(rows - 1);   // 0 = nearest/newest, 1 = horizon
 
     // Non-linear so rows bunch up toward the horizon rather than marching back
     // at an even pace — even spacing looks like a staircase, not a distance.
