@@ -103,6 +103,7 @@ decoupled and the history texture is the buffer between them.
 | **Mandala** | radius = frequency, angle = time | Sustained tones are rings, sweeps are spirals, drum hits are radial spokes. |
 | **Flow** | line-integral convolution along the spectral gradient | Liquid smoke. Colour is smeared *along* streamlines, so each pixel shows the history of energy that flowed through it. |
 | **Helix** | angle = pitch class, radius = octave | Every C on one spoke. Chords become fixed geometric figures. |
+| **Terrain** | 3D ridgeline landscape, depth = age | The waterfall's data as receding mountain ridges with true occlusion. Depth is linear in age — a perspective exponent was tried and its slope diverges at age zero, shooting new material through the foreground. |
 
 Two non-obvious things had to be fixed to make these readable, both visible as
 soon as you run them wrong:

@@ -2,7 +2,7 @@ import { FRAG, VERT } from "./shaders";
 import { BINS_PER_OCTAVE, N_BINS } from "../core/stft";
 import type { FrameStats } from "../core/stft";
 
-export const MODES = ["waterfall", "mandala", "flow", "helix"] as const;
+export const MODES = ["waterfall", "mandala", "flow", "helix", "terrain"] as const;
 export type Mode = (typeof MODES)[number];
 
 /**

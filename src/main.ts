@@ -158,8 +158,9 @@ slider("s-sync", "v-sync", (v) => (viz.params.syncOffsetMs = v), (v) => `${v | 0
 
 let paused = false;
 document.addEventListener("keydown", (e) => {
-  if (e.key >= "1" && e.key <= "4") {
-    selectMode(MODES[+e.key - 1]);
+  const modeIdx = +e.key - 1;
+  if (e.key >= "1" && e.key <= "9" && modeIdx < MODES.length) {
+    selectMode(MODES[modeIdx]);
   } else if (e.key.toLowerCase() === "h") {
     panel.classList.toggle("dim");
   } else if (e.key.toLowerCase() === "f") {

@@ -154,25 +154,38 @@ vec3 spectralColor(vec4 s) {
 }
 
 // ---------------------------------------------------------------------------
-// Mode 0 — waterfall, as a receding ridgeline landscape.
-//
-// A flat heatmap is the least interesting thing you can do with this data, and
-// "waterfall" originally meant the 3D sonogram plot anyway. Each history frame
-// is a ridgeline across log-frequency, displaced vertically by magnitude and
-// pushed back toward a horizon. Rows are walked front to back and the first
-// one that covers the pixel wins, which is painter's-algorithm hidden-surface
-// removal — the near ridges genuinely occlude the far ones, and that occlusion
-// is what reads as depth.
+// Mode 0 — the classic scrolling waterfall.
+// Time on x, log-frequency on y. The literal spectrogram: least abstract of
+// the modes, uniform scroll speed, and the one to trust when checking that the
+// analysis itself is right.
 // ---------------------------------------------------------------------------
 vec3 modeWaterfall(vec2 uv) {
+  float age = (1.0 - uv.x) * uWindowFrac * float(uHistoryLen);
+  float bin = uv.y * float(uBins);
+  return spectralColor(sampleHistory(bin, age));
+}
+
+// ---------------------------------------------------------------------------
+// Mode 4 — terrain: the waterfall as a receding ridgeline landscape.
+//
+// Each history frame is a ridgeline across log-frequency, displaced vertically
+// by magnitude and pushed back toward a horizon. Rows are walked front to back
+// and the first one that covers the pixel wins — painter's-algorithm
+// hidden-surface removal; the occlusion is what reads as depth.
+//
+// Depth is LINEAR in age. A perspective-style mapping (depth ∝ age^0.72) was
+// tried first and the slope of that curve is infinite at age zero, so the
+// newest material shot through the foreground however long the display window
+// was. Constant recede speed matches the flat waterfall's scroll; the 3D cue
+// comes from occlusion, row shrink, and haze instead.
+// ---------------------------------------------------------------------------
+vec3 modeTerrain(vec2 uv) {
   const int ROWS = 64;
 
   for (int i = 0; i < ROWS; i++) {
     float t = float(i) / float(ROWS - 1);   // 0 = nearest/newest, 1 = horizon
 
-    // Non-linear so rows bunch up toward the horizon rather than marching back
-    // at an even pace — even spacing looks like a staircase, not a distance.
-    float persp = pow(t, 0.72);
+    float persp = t;
     float baseY  = mix(0.03, 0.82, persp);
     float shrink = mix(1.0, 0.62, persp);   // far rows are narrower
 
@@ -324,6 +337,7 @@ vec3 modeHelix(vec2 uv) {
 
 vec3 renderMode(int mode, vec2 uv) {
   if (mode == 0) return modeWaterfall(uv);
+  if (mode == 4) return modeTerrain(uv);
   if (mode == 1) return modeMandala(uv);
   if (mode == 2) return modeFlow(uv);
   return modeHelix(uv);
