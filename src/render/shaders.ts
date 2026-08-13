@@ -253,46 +253,8 @@ vec3 modeHelix(vec2 uv) {
   return col;
 }
 
-
-// ---------------------------------------------------------------------------
-// Mode 4 — terrain: the waterfall's data as a receding ridgeline landscape.
-// Rows are walked front to back; the first to cover the pixel wins (painter's
-// algorithm), and that occlusion is what reads as depth. Depth is LINEAR in
-// age: a perspective exponent was tried and its slope diverges at age zero,
-// which shot the newest material through the foreground at any window length.
-// ---------------------------------------------------------------------------
-vec3 modeTerrain(vec2 uv) {
-  const int ROWS = 64;
-
-  for (int i = 0; i < ROWS; i++) {
-    float t = float(i) / float(ROWS - 1);   // 0 = nearest/newest, 1 = horizon
-
-    float baseY  = mix(0.03, 0.82, t);
-    float shrink = mix(1.0, 0.62, t);       // far rows are narrower
-
-    // This pixel's x, expressed in the row's own (narrowed) frequency space.
-    float lx = (uv.x - 0.5) / shrink + 0.5;
-    if (lx < 0.0 || lx > 1.0) continue;
-
-    float age = t * uWindowFrac * float(uHistoryLen);
-    vec4 s = sampleHistory(lx * float(uBins), age);
-
-    // Displacement shrinks with distance so the perspective stays consistent.
-    float ridge = baseY + s.r * 0.17 * shrink;
-    if (uv.y > ridge) continue;             // above this crest — look further back
-
-    // Hot rim on the crest, dimmer fill beneath, aerial haze with distance.
-    float below = smoothstep(0.0, 0.005, ridge - uv.y);
-    vec3 c = spectralColor(s);
-    vec3 col = mix(c * 2.1, c * 0.42, below);
-    return col * mix(1.0, 0.62, t);
-  }
-  return vec3(0.0);
-}
-
 vec3 renderMode(int mode, vec2 uv) {
   if (mode == 0) return modeWaterfall(uv);
-  if (mode == 4) return modeTerrain(uv);
   if (mode == 1) return modeMandala(uv);
   if (mode == 2) return modeFlow(uv);
   return modeHelix(uv);

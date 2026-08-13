@@ -2,22 +2,11 @@ import { FRAG, VERT } from "./shaders";
 import { BINS_PER_OCTAVE, N_BINS } from "../core/stft";
 import type { FrameStats } from "../core/stft";
 
-export const MODES = ["waterfall", "mandala", "flow", "helix", "terrain"] as const;
+export const MODES = ["waterfall", "mandala", "flow", "helix"] as const;
 export type Mode = (typeof MODES)[number];
 
-/**
- * Rows of spectral history kept on the GPU.
- *
- * Sized so that even the finest hop still buys ~20 s of scrollback: at hop 256
- * (187 frames/sec) this is 21.8 s, and at hop 1024 it is 87 s. Costs
- * 324 × 4096 × 4 B ≈ 5.3 MB of texture, which is nothing.
- */
-export const HISTORY = 4096;
-
-/** How fast the overall level envelope tracks, in seconds. */
-const LEVEL_TAU = 0.1;
-/** How fast the onset bloom decays, in seconds. */
-const FLUX_TAU = 0.16;
+/** Rows of spectral history kept on the GPU. At ~47 fps this is ~21 s. */
+const HISTORY = 1024;
 
 export interface RenderParams {
   /** Seconds of history on screen — your 5–10 s slider. */
@@ -149,18 +138,8 @@ export class Renderer {
     );
 
     // Attack fast, release slow: onsets should pop, then settle.
-    //
-    // Derived from time constants, not written as per-frame numbers. Frames
-    // arrive anywhere from 47/sec (coarse) to 375/sec (ultra), so a fixed
-    // coefficient would make the bloom breathe eight times faster at the
-    // finest Detail setting — which reads as the whole picture racing.
-    const dt = 1 / this.framesPerSecond;
-    this.smoothLevel +=
-      (stats.level - this.smoothLevel) * (1 - Math.exp(-dt / LEVEL_TAU));
-    this.smoothFlux = Math.max(
-      this.smoothFlux * Math.exp(-dt / FLUX_TAU),
-      stats.flux,
-    );
+    this.smoothLevel += (stats.level - this.smoothLevel) * 0.2;
+    this.smoothFlux = Math.max(this.smoothFlux * 0.88, stats.flux);
   }
 
   draw(dtSeconds: number): void {

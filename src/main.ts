@@ -8,7 +8,6 @@
 import { Visualizer } from "./visualizer";
 import { WebAudioSource } from "./sources/webaudio";
 import { MODES, type Mode } from "./render/renderer";
-import type { DetailName } from "./visualizer";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const statusEl = document.getElementById("status")!;
@@ -39,9 +38,6 @@ async function attachTo(build: (ctx: AudioContext) => AudioNode) {
   currentNode = node as AudioBufferSourceNode | MediaStreamAudioSourceNode;
 
   await viz.attach(new WebAudioSource(audioCtx, node));
-  // The analyzer only exists after attach, so the real window length (which
-  // depends on the device sample rate) is only knowable now.
-  refreshDetailLabel();
 }
 
 // --- file playback ---------------------------------------------------------
@@ -117,36 +113,7 @@ function slider(id: string, out: string, apply: (v: number) => void, fmt: (v: nu
   update();
 }
 
-// The window spans 0.5 s to 20 s — a 40x range, so the slider is
-// logarithmic. Linear steps would make everything below 2 s unreachable.
-// (0.125 s was tried and is too twitchy to be interesting.)
-const WIN_MIN = 0.5;
-const WIN_MAX = 20;
-const winFromSlider = (t: number) => WIN_MIN * Math.pow(WIN_MAX / WIN_MIN, t / 1000);
-
-slider(
-  "s-window",
-  "v-window",
-  (t) => (viz.params.windowSeconds = winFromSlider(t)),
-  (t) => {
-    const s = winFromSlider(t);
-    return s < 1 ? `${Math.round(s * 1000)} ms` : `${s.toFixed(1)} s`;
-  },
-);
-
-const detailSelect = document.getElementById("s-detail") as HTMLSelectElement;
-const detailOut = document.getElementById("v-detail")!;
-// Surface the analysis window length, because it is the real floor on time
-// resolution — asking for a 125 ms view at coarse detail cannot work.
-function refreshDetailLabel() {
-  detailOut.textContent = `${Math.round(viz.analysisWindowMs)} ms`;
-}
-function applyDetail() {
-  viz.setDetail(detailSelect.value as DetailName);
-  refreshDetailLabel();
-}
-detailSelect.addEventListener("change", applyDetail);
-applyDetail();
+slider("s-window", "v-window", (v) => (viz.params.windowSeconds = v), (v) => `${v.toFixed(1)} s`);
 slider("s-fade", "v-fade", (v) => (viz.params.fadeSeconds = v), (v) => `${v.toFixed(1)} s`);
 slider("s-sym", "v-sym", (v) => (viz.params.symmetry = v), (v) => `${v}`);
 slider("s-hue", "v-hue", (v) => (viz.params.hueDriftRpm = v), (v) => `${v.toFixed(1)} rpm`);
@@ -158,9 +125,8 @@ slider("s-sync", "v-sync", (v) => (viz.params.syncOffsetMs = v), (v) => `${v | 0
 
 let paused = false;
 document.addEventListener("keydown", (e) => {
-  const modeIdx = +e.key - 1;
-  if (e.key >= "1" && e.key <= "9" && modeIdx < MODES.length) {
-    selectMode(MODES[modeIdx]);
+  if (e.key >= "1" && e.key <= "4") {
+    selectMode(MODES[+e.key - 1]);
   } else if (e.key.toLowerCase() === "h") {
     panel.classList.toggle("dim");
   } else if (e.key.toLowerCase() === "f") {
