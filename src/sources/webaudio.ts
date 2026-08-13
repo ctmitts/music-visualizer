@@ -12,15 +12,9 @@ const WORKLET_SOURCE = `
 class TapProcessor extends AudioWorkletProcessor {
   process(inputs) {
     const input = inputs[0];
-    // A finished or disconnected source delivers no input at all. Time has
-    // not stopped, so silence must still be reported — otherwise the analysis
-    // stalls and the picture freezes on the last audible frame instead of
-    // scrolling on into quiet.
-    if (!input || input.length === 0 || !input[0]) {
-      this.port.postMessage(new Float32Array(128));
-      return true;
-    }
+    if (!input || input.length === 0) return true;
     const left = input[0];
+    if (!left) return true;
     const right = input.length > 1 ? input[1] : null;
 
     // Downmix to mono up front: the analysis is mono, and copying one array
