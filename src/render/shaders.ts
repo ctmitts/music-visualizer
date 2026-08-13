@@ -98,26 +98,6 @@ vec3 oklabToLinearSrgb(vec3 c) {
    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
 }
 
-/**
- * Highlight rolloff.
- *
- * Loud, heavily-limited masters push most bands near the top of the AGC range,
- * and once the crest bloom and the flow-mode gain stack on top, channels run
- * well past 1.0. Hard clipping turns every energetic partial pure white —
- * exactly where the pitch-class hue is most worth seeing. Compressing by
- * luminance instead scales all three channels together, so highlights roll off
- * toward white smoothly while keeping their colour.
- */
-vec3 tonemap(vec3 c) {
-  const float KNEE = 0.70;
-  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  if (lum <= KNEE) return c;
-  float over = lum - KNEE;
-  // Asymptotes to 1.0 as lum grows, and is C1-continuous at the knee.
-  float mapped = KNEE + over / (1.0 + over / (1.0 - KNEE));
-  return c * (mapped / max(lum, 1e-5));
-}
-
 vec3 linearToSrgb(vec3 c) {
   c = max(c, vec3(0.0));
   return mix(12.92 * c, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
@@ -132,12 +112,7 @@ vec3 linearToSrgb(vec3 c) {
  *   transient  → additive white bloom
  */
 vec3 spectralColor(vec4 s) {
-  // Clamped: gain can push s.r * uGain well past 1, and an unclamped mag both
-  // drives Oklab lightness beyond 1 and sends the chroma falloff term
-  // (1 - 0.55 * mag) negative — at which point colour is mathematically gone
-  // and everything loud renders as blown white. With the clamp, extra gain
-  // saturates instead of exploding.
-  float mag = pow(clamp(s.r * uGain, 0.0, 1.0), 1.3);
+  float mag = pow(s.r * uGain, 1.3);
   float hue = fract(s.g + uHueRotate) * TAU;
   float coh = s.b;
   float tr  = s.a;
@@ -154,64 +129,14 @@ vec3 spectralColor(vec4 s) {
 }
 
 // ---------------------------------------------------------------------------
-// Mode 0 — the classic scrolling waterfall.
-// Time on x, log-frequency on y. The literal spectrogram: least abstract of
-// the modes, uniform scroll speed, and the one to trust when checking that the
-// analysis itself is right.
+// Mode 0 — scrolling waterfall.
+// The literal spectrogram. Least abstract, and the one to trust when checking
+// that the analysis itself is right.
 // ---------------------------------------------------------------------------
 vec3 modeWaterfall(vec2 uv) {
   float age = (1.0 - uv.x) * uWindowFrac * float(uHistoryLen);
   float bin = uv.y * float(uBins);
   return spectralColor(sampleHistory(bin, age));
-}
-
-// ---------------------------------------------------------------------------
-// Mode 4 — terrain: the waterfall as a receding ridgeline landscape.
-//
-// Each history frame is a ridgeline across log-frequency, displaced vertically
-// by magnitude and pushed back toward a horizon. Rows are walked front to back
-// and the first one that covers the pixel wins — painter's-algorithm
-// hidden-surface removal; the occlusion is what reads as depth.
-//
-// Depth is LINEAR in age. A perspective-style mapping (depth ∝ age^0.72) was
-// tried first and the slope of that curve is infinite at age zero, so the
-// newest material shot through the foreground however long the display window
-// was. Constant recede speed matches the flat waterfall's scroll; the 3D cue
-// comes from occlusion, row shrink, and haze instead.
-// ---------------------------------------------------------------------------
-vec3 modeTerrain(vec2 uv) {
-  const int ROWS = 64;
-
-  for (int i = 0; i < ROWS; i++) {
-    float t = float(i) / float(ROWS - 1);   // 0 = nearest/newest, 1 = horizon
-
-    float persp = t;
-    float baseY  = mix(0.03, 0.82, persp);
-    float shrink = mix(1.0, 0.62, persp);   // far rows are narrower
-
-    // This pixel's x, expressed in the row's own (narrowed) frequency space.
-    float lx = (uv.x - 0.5) / shrink + 0.5;
-    if (lx < 0.0 || lx > 1.0) continue;
-
-    float age = t * uWindowFrac * float(uHistoryLen);
-    vec4 s = sampleHistory(lx * float(uBins), age);
-
-    // Displacement shrinks with distance so the perspective stays consistent.
-    float ridge = baseY + s.r * 0.17 * shrink;
-    if (uv.y > ridge) continue;             // above this crest — look further back
-
-    // Inside this row's surface: it hides everything behind it.
-    float below = smoothstep(0.0, 0.005, ridge - uv.y);
-    vec3 c = spectralColor(s);
-    // Hot rim exactly on the crest, dimmer fill beneath, so the lines read as
-    // lines instead of the whole surface glowing into mush. The fill still has
-    // to carry real colour — drop it too far and the landscape reads as bare
-    // wireframe floating in black.
-    vec3 col = mix(c * 2.1, c * 0.42, below);
-    // Aerial haze toward the horizon.
-    return col * mix(1.0, 0.62, persp);
-  }
-  return vec3(0.0);
 }
 
 // ---------------------------------------------------------------------------
@@ -257,12 +182,6 @@ vec3 modeMandala(vec2 uv) {
 // because the gradient of a spectrogram genuinely is the direction energy is
 // travelling.
 // ---------------------------------------------------------------------------
-// NOTE: this is the original RGB-averaging LIC, deliberately restored. A
-// data-space rewrite (averaging pitch class as a unit vector) measured far
-// worse: flow streamlines cross unrelated notes BY DESIGN, so hue disagreement
-// along a path is the normal case, and the resultant-length "agreement" term
-// drained saturation to 0.04. Averaging in RGB keeps mixed paths colourful;
-// the tonemap now handles the brightness this stacks up.
 vec3 modeFlow(vec2 uv) {
   vec2 p = uv;
   vec3 acc = vec3(0.0);
@@ -301,7 +220,6 @@ vec3 modeFlow(vec2 uv) {
   return acc / wsum * 1.5;
 }
 
-
 // ---------------------------------------------------------------------------
 // Mode 3 — harmonic helix / chroma torus.
 // Angle is pitch class and radius is octave, so every C sits on one spoke.
@@ -335,6 +253,43 @@ vec3 modeHelix(vec2 uv) {
   return col;
 }
 
+
+// ---------------------------------------------------------------------------
+// Mode 4 — terrain: the waterfall's data as a receding ridgeline landscape.
+// Rows are walked front to back; the first to cover the pixel wins (painter's
+// algorithm), and that occlusion is what reads as depth. Depth is LINEAR in
+// age: a perspective exponent was tried and its slope diverges at age zero,
+// which shot the newest material through the foreground at any window length.
+// ---------------------------------------------------------------------------
+vec3 modeTerrain(vec2 uv) {
+  const int ROWS = 64;
+
+  for (int i = 0; i < ROWS; i++) {
+    float t = float(i) / float(ROWS - 1);   // 0 = nearest/newest, 1 = horizon
+
+    float baseY  = mix(0.03, 0.82, t);
+    float shrink = mix(1.0, 0.62, t);       // far rows are narrower
+
+    // This pixel's x, expressed in the row's own (narrowed) frequency space.
+    float lx = (uv.x - 0.5) / shrink + 0.5;
+    if (lx < 0.0 || lx > 1.0) continue;
+
+    float age = t * uWindowFrac * float(uHistoryLen);
+    vec4 s = sampleHistory(lx * float(uBins), age);
+
+    // Displacement shrinks with distance so the perspective stays consistent.
+    float ridge = baseY + s.r * 0.17 * shrink;
+    if (uv.y > ridge) continue;             // above this crest — look further back
+
+    // Hot rim on the crest, dimmer fill beneath, aerial haze with distance.
+    float below = smoothstep(0.0, 0.005, ridge - uv.y);
+    vec3 c = spectralColor(s);
+    vec3 col = mix(c * 2.1, c * 0.42, below);
+    return col * mix(1.0, 0.62, t);
+  }
+  return vec3(0.0);
+}
+
 vec3 renderMode(int mode, vec2 uv) {
   if (mode == 0) return modeWaterfall(uv);
   if (mode == 4) return modeTerrain(uv);
@@ -356,6 +311,6 @@ void main() {
   float vign = 1.0 - 0.55 * length(uv - 0.5);
   col *= vign * (1.0 + uFlux * 0.55);
 
-  fragColor = vec4(linearToSrgb(tonemap(col)), 1.0);
+  fragColor = vec4(linearToSrgb(col), 1.0);
 }
 `;
