@@ -247,15 +247,20 @@ vec3 modeMandala(vec2 uv) {
 // ---------------------------------------------------------------------------
 vec3 modeFlow(vec2 uv) {
   vec2 p = uv;
-  vec3 acc = vec3(0.0);
-  float wsum = 0.0;
 
-  // Line-integral convolution. Sampling only at the end of the advection just
-  // gives a wobbled spectrogram; smearing colour *along* the streamline is
-  // what reads as smoke, because each pixel ends up showing the history of the
-  // energy that flowed through it.
+  // Line-integral convolution along the spectral gradient.
+  //
+  // The averaging happens on the DATA, never on RGB. Averaging finished
+  // colours along a streamline mixes unrelated hues, and mixed hues in RGB go
+  // brown — that is what turned this mode to mud. Pitch class is an angle, so
+  // it is averaged as one: sum unit vectors, take the resultant. The length of
+  // that resultant is a free saturation term, because it measures how much the
+  // hues along the path actually agreed.
   const int STEPS = 8;
   float amp = 0.030 * (0.5 + uLevel);
+
+  float accMag = 0.0, accCoh = 0.0, accTr = 0.0, wsum = 0.0;
+  vec2 hueVec = vec2(0.0);
 
   for (int i = 0; i < STEPS; i++) {
     float age = (1.0 - p.x) * uWindowFrac * float(uHistoryLen);
@@ -263,8 +268,16 @@ vec3 modeFlow(vec2 uv) {
     vec4 c = sampleHistory(bin, age);
 
     float w = exp(-float(i) * 0.22);
-    acc += spectralColor(c) * w;
+    accMag += c.r * w;
+    accCoh += c.b * w;
+    accTr = max(accTr, c.a);          // a transient anywhere on the path counts
     wsum += w;
+
+    // Weighted by magnitude ONLY. Folding coherence in here too would count it
+    // twice — once in the resultant, again in accCoh below — squaring it and
+    // draining the colour back out.
+    float ang = c.g * TAU;
+    hueVec += vec2(cos(ang), sin(ang)) * w * c.r;
 
     // Gradient of magnitude, rotated 90° so flow runs along contours rather
     // than straight up them — that is what makes it curl instead of smear.
@@ -272,16 +285,21 @@ vec3 modeFlow(vec2 uv) {
     vec4 ca = sampleHistory(bin, age + 4.0);
     vec2 grad = vec2(ca.r - c.r, cb.r - c.r);
     vec2 flow = vec2(-grad.y, grad.x) * 2.5;
-
-    // Pitch class steers the drift, so different notes move different ways.
-    float ang = c.g * TAU;
     flow += 0.45 * vec2(cos(ang), sin(ang)) * c.b;
 
     p += flow * amp;
   }
 
-  return acc / wsum * 1.5;
+  float mag = accMag / wsum;
+  float hue = atan(hueVec.y, hueVec.x) / TAU + 0.5;
+  // 1 = every sample on the path agreed on pitch, 0 = the path crossed
+  // unrelated notes and should read as smoke rather than a colour.
+  float agree = clamp(length(hueVec) / max(accMag, 1e-4), 0.0, 1.0);
+  float coh = (accCoh / wsum) * agree;
+
+  return spectralColor(vec4(mag, hue, coh, accTr));
 }
+
 
 // ---------------------------------------------------------------------------
 // Mode 3 — harmonic helix / chroma torus.
