@@ -156,10 +156,19 @@ vec3 modeWaterfall(vec2 uv) {
     if (lx < 0.0 || lx > 1.0) continue;
 
     float age = t * uWindowFrac * float(uHistoryLen);
-    vec4 s = sampleHistory(lx * float(uBins), age);
+    float binF = lx * float(uBins);
+    vec4 s = sampleHistory(binF, age);
+
+    // Smooth the *height* across neighbouring bins. Driving the ridge straight
+    // from the raw per-bin magnitude makes every row a spike forest, and 64
+    // stacked spike forests read as a picket fence rather than a landscape.
+    // Colour still comes from the unsmoothed bin, so pitch detail survives.
+    float h = (sampleHistory(binF - 4.0, age).r
+             + s.r * 2.0
+             + sampleHistory(binF + 4.0, age).r) * 0.25;
 
     // Displacement shrinks with distance so the perspective stays consistent.
-    float ridge = baseY + s.r * 0.17 * shrink;
+    float ridge = baseY + h * 0.17 * shrink;
     if (uv.y > ridge) continue;             // above this crest — look further back
 
     // Inside this row's surface: it hides everything behind it.
@@ -169,7 +178,11 @@ vec3 modeWaterfall(vec2 uv) {
     // lines instead of the whole surface glowing into mush. The fill still has
     // to carry real colour — drop it too far and the landscape reads as bare
     // wireframe floating in black.
-    vec3 col = mix(c * 2.1, c * 0.42, below);
+    // The fill must be nearly black. Drawn bright, 64 overlapping filled
+    // surfaces stack into a solid wall of colour with no gaps — which is what
+    // made this read as a picket fence. Dark fill turns the same data into
+    // glowing contour lines with real black between them.
+    vec3 col = mix(c * 2.6, c * 0.05, below);
     // Aerial haze toward the horizon.
     return col * mix(1.0, 0.62, persp);
   }
