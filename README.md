@@ -2,7 +2,7 @@
 
 A phase-aware music visualizer. Four ways of looking at one time-frequency
 field, built to run standalone in a browser or embedded in the
-[Mix Table](../../Desktop/music-mixer) DJ app.
+[Mix Table](https://github.com/ctmitts/music-mixer) DJ app.
 
 ```bash
 npm install && npm run dev
